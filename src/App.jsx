@@ -113,7 +113,7 @@ function App() {
     </div>
     <div id="video-div">
       <video ref={videoRef} id="qr-video"></video>
-      { isSceneVisible && <canvas ref={babylonCanvasRef} id='babylon-canvas'/>}
+      <canvas ref={babylonCanvasRef} id='babylon-canvas'/>
     </div>
 
     </>
