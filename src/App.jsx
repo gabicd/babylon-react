@@ -29,7 +29,7 @@ function App() {
         scene.createDefaultCameraOrLight(true, false, true);
 
             try {
-              await BABYLON.SceneLoader.ImportMeshAsync("", "./models/", "model.gltf", scene);
+              BABYLON.SceneLoader.ImportMeshAsync("", "./models/", "model.gltf", scene);
               console.log("Model loaded successfully!");
           } catch (e) {
             console.error("Failed to load model.", e);
