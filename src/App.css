@@ -22,32 +22,13 @@ html, body, #root, .app-container {
   z-index: 1;
 }
 
-#qr-video {
+#babylon-canvas #qr-video {
   position: absolute;
   top: 0; left: 50%;
   width: 50%;
   height: 50%;  
 }
 
-/* The video feed and Babylon canvas, layered perfectly */
-.ar-video, .babylon-canvas {
-  width: 100vw;
-  height: 100vh;
-  display: block;
-  position: absolute;
-  top: 0; left: 0;
-  z-index: 3;
-  pointer-events: auto;
-}
-
-/* The data display box */
-.data-display {
-  position: absolute;
-  bottom: 20px;
-  left: 20px;
-  background: rgba(255,255,255,0.9);
-  padding: 1em;
-  border-radius: 8px;
-  z-index: 4;
-  pointer-events: auto;
+#babylon-canvas {
+  z-index: 2;
 }

@@ -1,13 +1,17 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Map, Marker } from 'maplibre-gl';
 import QrScanner from 'qr-scanner';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './App.css';
+import { ShapeCastResult } from '@babylonjs/core';
 
 function App() {
   const mapContainerRef = useRef(null);
   const videoRef = useRef(null);
   const scannerRef = useRef(null);
+  const babylonCanvasRef = useRef(null);
+  const engineInstanceRef = useRef(null);
+  const [isSceneVisible, setSceneVisible] = useState(false);
 
   const assetData = {
   entidade: {
@@ -19,6 +23,27 @@ function App() {
 };
 
   useEffect(() => {
+    //Create the Babylon.js engine instance
+    if (babylonCanvasRef.current && !engineInstanceRef.current) {
+      const engine = new BABYLON.Engine(babylonCanvasRef.current, true, { alpha: true });
+      engineInstanceRef.current = engine;
+    }
+    
+    async function setResult(result) {
+              console.log(`QR Code detected: ${result.data}`);
+
+              if(result.data == assetData.entidade.id) {
+                console.log('Asset found:', assetData.entidade);
+                setSceneVisible(true);
+                const engine = engineInstanceRef.current;
+                const scene = await createScene(engine);
+                engine.runRenderLoop(() => {
+                  scene.render();
+                });
+              }
+
+            }
+
     let map, marker;
     if (mapContainerRef.current) {
       map = new Map({
@@ -38,14 +63,7 @@ function App() {
         if (!scannerRef.current && videoRef.current) {
           scannerRef.current = new QrScanner(
             videoRef.current,
-            result => {
-              console.log(`QR Code detected: ${result}`);
-
-              if(result.data == assetData.entidade.id) {
-                console.log('Asset found:', assetData.entidade);
-              }
-
-            },
+            result => setResult(result),
             {
               highlightScanRegion: false,
               highlightCodeOutline: false,
@@ -56,8 +74,24 @@ function App() {
           scannerRef.current.start().catch((error) => {
             console.error('Error starting QR Scanner:', error);
           });
+
         }
       });
+
+
+      const createScene = async (engine) => {
+        const scene = new BABYLON.Scene(engine);
+        scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
+        scene.createDefaultCameraOrLight(true, false, true);
+
+            try {
+              await BABYLON.SceneLoader.ImportMeshAsync("", "./models/", "model.gltf", scene);
+              console.log("Model loaded successfully!");
+          } catch (e) {
+            console.error("Failed to load model.", e);
+          }
+        return scene;
+      }
 
       return () => {
       if (scannerRef.current) {
@@ -75,6 +109,7 @@ function App() {
     </div>
     <div id="video-div">
       <video ref={videoRef} id="qr-video"></video>
+      { isSceneVisible && <canvas ref={babylonCanvasRef} id='babylon-canvas'/>}
     </div>
 
     </>
