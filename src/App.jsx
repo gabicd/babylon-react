@@ -22,13 +22,6 @@ function App() {
 
 };
 
-  useEffect(() => {
-    //Create the Babylon.js engine instance
-    if (babylonCanvasRef.current && !engineInstanceRef.current) {
-      const engine = new BABYLON.Engine(babylonCanvasRef.current, true, { alpha: true });
-      engineInstanceRef.current = engine;
-    }
-    
       async function createScene (engine) {
         const scene = new BABYLON.Scene(engine);
         scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
@@ -57,6 +50,14 @@ function App() {
               }
 
             }
+
+
+  useEffect(() => {
+    //Create the Babylon.js engine instance
+    if (babylonCanvasRef.current && !engineInstanceRef.current) {
+      const engine = new BABYLON.Engine(babylonCanvasRef.current, true, { alpha: true });
+      engineInstanceRef.current = engine;
+    }
 
     let map, marker;
     if (mapContainerRef.current) {
