@@ -3,7 +3,8 @@ import { Map, Marker } from 'maplibre-gl';
 import QrScanner from 'qr-scanner';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './App.css';
-import { ShapeCastResult } from '@babylonjs/core';
+import * as BABYLON from '@babylonjs/core';
+import '@babylonjs/loaders/glTF';
 
 function App() {
   const mapContainerRef = useRef(null);
