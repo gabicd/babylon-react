@@ -29,6 +29,20 @@ function App() {
       engineInstanceRef.current = engine;
     }
     
+      async function createScene (engine) {
+        const scene = new BABYLON.Scene(engine);
+        scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
+        scene.createDefaultCameraOrLight(true, false, true);
+
+            try {
+              await BABYLON.SceneLoader.ImportMeshAsync("", "./models/", "model.gltf", scene);
+              console.log("Model loaded successfully!");
+          } catch (e) {
+            console.error("Failed to load model.", e);
+          }
+        return scene;
+      }
+
     async function setResult(result) {
               console.log(`QR Code detected: ${result.data}`);
 
@@ -79,19 +93,7 @@ function App() {
       });
 
 
-      const createScene = async (engine) => {
-        const scene = new BABYLON.Scene(engine);
-        scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
-        scene.createDefaultCameraOrLight(true, false, true);
 
-            try {
-              await BABYLON.SceneLoader.ImportMeshAsync("", "./models/", "model.gltf", scene);
-              console.log("Model loaded successfully!");
-          } catch (e) {
-            console.error("Failed to load model.", e);
-          }
-        return scene;
-      }
 
       return () => {
       if (scannerRef.current) {
