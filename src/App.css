@@ -31,3 +31,7 @@ html, body, #root, .app-container {
 #babylon-canvas {
   z-index: 2;
 }
+
+#permission-button {
+  z-index: 100;
+}

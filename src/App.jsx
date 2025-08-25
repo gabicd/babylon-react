@@ -181,7 +181,7 @@ async function createScene (engine) { //função para criar a cena do Babylon.js
               onClick={() => {
                 const scene = engineInstanceRef.current.scenes[0];
                 if (scene) {
-                  setupAccelerometerControls(scene);
+                  setupAccelerometerControl(scene);
                 }
               }}
             >
