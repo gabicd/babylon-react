@@ -15,7 +15,7 @@ function App() {
   const sensorRef = useRef(null)
 
   const [isSceneVisible, setSceneVisible] = useState(false);
-  const [motionControlActive, setMotionControlsActive] = useState(false)
+  const [motionControlsActive, setMotionControlsActive] = useState(false)
 
   const assetData = { //mock data
   entidade: {
