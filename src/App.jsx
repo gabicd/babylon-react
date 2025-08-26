@@ -82,7 +82,7 @@ function App() {
         setMotionControlsActive(true);
         alert("GyroNorm started successfully.");
       } catch (error) {
-        console.error("GyroNorm could not be initialized.", error);
+        console.error("Permission request failed. The actual error was:", error);
         alert("Could not activate motion controls. Please grant permission.");
       }
       
