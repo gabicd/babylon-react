@@ -12,11 +12,7 @@ function App() {
   const scannerRef = useRef(null);
   const babylonCanvasRef = useRef(null);
   const engineInstanceRef = useRef(null);
-  const motionHandlerRef = useRef(null);
-  
   const [isSceneVisible, setSceneVisible] = useState(false);
-  const [motionControlsActive, setMotionControlsActive] = useState(false);
-  
 
   const assetData = {
   entidade: {
@@ -30,11 +26,16 @@ function App() {
       async function createScene (engine) {
         const scene = new BABYLON.Scene(engine);
         scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
-      const camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 1, -5), scene);
-      camera.attachControl(babylonCanvasRef.current, true);
+        const camera = new BABYLON.DeviceOrientationCamera(
+          "DeviceOrientationCamera",
+          new BABYLON.Vector3(0, 1, -5), // Start 5 units back
+          scene
+        );
 
-      const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
-      light.intensity = 0.8;
+          camera.attachControl(canvas, true);
+  // -------------------------
+
+  const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
 
             try {
               BABYLON.SceneLoader.ImportMeshAsync("", "./models/", "model.gltf", scene);
@@ -44,64 +45,6 @@ function App() {
           }
         return scene;
       }
-
-  async function setupDeviceMotionControls(scene) {
-    if (!scene) {
-      console.error("Scene not available to set up motion controls.");
-      return;
-    }
-    const camera = scene.activeCamera;
-    const velocity = new BABYLON.Vector3(0, 0, 0);
-    const DAMPING = 0.95;
-    const ACCELERATION_THRESHOLD = 0.2;
-
-    if (typeof DeviceMotionEvent.requestPermission === 'function') {
-      try {
-        const permissionState = await DeviceMotionEvent.requestPermission();
-        if (permissionState !== 'granted') {
-          alert('Permission for Device Motion was not granted.');
-          return;
-        }
-      } catch (error) {
-        console.error("Permission request failed.", error);
-        alert("Could not request permission.");
-        return;
-      }
-    }
-
-    let lastTimestamp = 0;
-    // --- FIX: Defined the handler so we can remove it later ---
-    motionHandlerRef.current = (event) => {
-      if (event.acceleration) {
-        if (lastTimestamp === 0) {
-          lastTimestamp = event.timeStamp;
-          return;
-        }
-        const deltaTime = (event.timeStamp - lastTimestamp) / 1000.0;
-        lastTimestamp = event.timeStamp;
-        let accelZ = event.acceleration.z;
-        if (Math.abs(accelZ) < ACCELERATION_THRESHOLD) {
-          accelZ = 0;
-        }
-        velocity.z += -accelZ * deltaTime;
-      }
-    };
-    
-    window.addEventListener('devicemotion', motionHandlerRef.current);
-
-    scene.onBeforeRenderObservable.add(() => {
-      velocity.scaleInPlace(DAMPING);
-      if (Math.abs(velocity.z) < 0.001) {
-        velocity.z = 0;
-      }
-      const forwardDirection = camera.getDirection(BABYLON.Vector3.Forward());
-      const engineDeltaTime = scene.getEngine().getDeltaTime() / 1000.0;
-      camera.position.addInPlace(forwardDirection.scale(velocity.z * engineDeltaTime));
-    });
-
-    setMotionControlsActive(true);
-    console.log("Device Motion controls are active.");
-  }
 
     async function setResult(result) {
               console.log(`QR Code detected: ${result.data}`);
@@ -164,14 +107,11 @@ function App() {
 
 
       return () => {
-        if (motionHandlerRef.current) {
-          window.removeEventListener('devicemotion', motionHandlerRef.current);
-          console.log("Device motion listener removed.");
-        }
-        if (scannerRef.current) scannerRef.current.destroy();
-        if (engineInstanceRef.current) engineInstanceRef.current.dispose();
-        if (map) map.remove();
-      };
+      if (scannerRef.current) {
+        scannerRef.current.destroy();
+      }
+      if (map) map.remove();
+    };
     }
   }, []);
 
@@ -183,23 +123,6 @@ function App() {
     <div id="video-div">
       <video ref={videoRef} id="qr-video"></video>
       <canvas ref={babylonCanvasRef} id='babylon-canvas'/>
-    
-        {isSceneVisible && !motionControlsActive && (
-          <div id="permission-overlay">
-            {/* --- FIX: Corrected onClick to get the scene from the engine --- */}
-            <button
-              id="permission-button"
-              onClick={() => {
-                const scene = engineInstanceRef.current?.scenes[0];
-                setupDeviceMotionControls(scene);
-              }}
-            >
-              Enable Motion Controls
-            </button>
-          </div>
-        )}
-
-
     </div>
 
     </>
