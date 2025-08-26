@@ -5,7 +5,6 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import './App.css';
 import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
-import GyroNorm from 'gyronorm';
 
 function App() {
   const mapContainerRef = useRef(null);
@@ -13,11 +12,7 @@ function App() {
   const scannerRef = useRef(null);
   const babylonCanvasRef = useRef(null);
   const engineInstanceRef = useRef(null);
-  const gnRef = useRef(null)
-  
   const [isSceneVisible, setSceneVisible] = useState(false);
-  const [motionControlsActive, setMotionControlsActive] = useState(false);
-  
 
   const assetData = {
   entidade: {
@@ -31,11 +26,7 @@ function App() {
       async function createScene (engine) {
         const scene = new BABYLON.Scene(engine);
         scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
-        const camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 1, -5), scene)
-        camera.attachControl(babylonCanvasRef.current, true);
-
-        const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
-        light.intensity = 0.8;
+        scene.createDefaultCameraOrLight(true, false, true);
 
             try {
               BABYLON.SceneLoader.ImportMeshAsync("", "./models/", "model.gltf", scene);
@@ -46,48 +37,66 @@ function App() {
         return scene;
       }
 
-    async function setupGyroNormControls(scene) {
-      const camera = scene.activeCamera;
-      const velocity = new BABYLON.Vector3(0,0,0);
-      const DAMPING = 0.95;
-      const ACCELERATION_THRESHOLD = 0.2;
 
-      gnRef.current = new GyroNorm();
+async function setupDeviceMotionControls(scene) {
+  const camera = scene.activeCamera;
+  const velocity = new BABYLON.Vector3(0, 0, 0);
+  const DAMPING = 0.95;
+  const ACCELERATION_THRESHOLD = 0.2;
 
-      try {
-        await gnRef.current.init();
+  // --- Step 1: Handle iOS 13+ Permissions ---
+  if (typeof DeviceMotionEvent.requestPermission === 'function') {
+    try {
+      const permissionState = await DeviceMotionEvent.requestPermission();
+      if (permissionState !== 'granted') {
+        alert('Permission for Device Motion was not granted.');
+        return;
+      }
+    } catch (error) {
+      console.error("Permission request failed.", error);
+      alert("Could not request permission.");
+      return;
+    }
+  }
 
-        gnRef.current.start((data) => {
-          const accelZ = data.dm.z;
-          
-          if (Math.abs(accelZ) < ACCELERATION_THRESHOLD) {
-            return;
-          }
-
-          const force = -accelZ / 60.0;
-          velocity.z += force;
-        });
-
-        scene.onBeforeRenderObservable.add(() => {
-          velocity.scaleInPlace(DAMPING);
-          if (Math.abs(velocity.z) < 0.001){
-            velocity.z = 0;
-          }
-
-          const forwardDirection = camera.getDirection(BABYLON.Vector3.Forward());
-          const deltaTime = scene.getEngine().getDeltaTime() / 1000.0;
-          camera.position.addInPlace(forwardDirection.scale(velocity.z * deltaTime));
-        });
-
-        setMotionControlsActive(true);
-        alert("GyroNorm started successfully.");
-      } catch (error) {
-        console.error("Permission request failed. The actual error was:", error);
-        alert("Could not activate motion controls. Please grant permission.");
+  let lastTimestamp = 0;
+  window.addEventListener('devicemotion', (event) => {
+    if (event.acceleration) {
+      if (lastTimestamp === 0) {
+        lastTimestamp = event.timeStamp;
+        return;
       }
       
-    }
+      // Calculate deltaTime for frame-rate independent physics
+      const deltaTime = (event.timeStamp - lastTimestamp) / 1000.0;
+      lastTimestamp = event.timeStamp;
 
+      let accelZ = event.acceleration.z;
+
+      if (Math.abs(accelZ) < ACCELERATION_THRESHOLD) {
+        accelZ = 0;
+      }
+
+      // Update velocity based on acceleration over time
+      velocity.z += -accelZ * deltaTime;
+    }
+  });
+
+    scene.onBeforeRenderObservable.add(() => {
+    velocity.scaleInPlace(DAMPING);
+    if (Math.abs(velocity.z) < 0.001) {
+      velocity.z = 0;
+    }
+    const forwardDirection = camera.getDirection(BABYLON.Vector3.Forward());
+    const engineDeltaTime = scene.getEngine().getDeltaTime() / 1000.0;
+    camera.position.addInPlace(forwardDirection.scale(velocity.z * engineDeltaTime));
+  });
+
+  // Update your state to hide the button
+  setMotionControlsActive(true); 
+  console.log("Device Motion controls are active.");
+
+}
     async function setResult(result) {
               console.log(`QR Code detected: ${result.data}`);
 
@@ -99,7 +108,6 @@ function App() {
                 engine.runRenderLoop(() => {
                   scene.render();
                 });
-                
               }
 
             }
@@ -150,16 +158,9 @@ function App() {
 
 
       return () => {
-      if (gnRef.current) {
-          gnRef.current.stop();
-          console.log("GyroNorm stopped.");
-        }  
       if (scannerRef.current) {
         scannerRef.current.destroy();
       }
-
-      if (engineInstanceRef.current) engineInstanceRef.current.dispose();
-
       if (map) map.remove();
     };
     }
@@ -174,22 +175,11 @@ function App() {
       <video ref={videoRef} id="qr-video"></video>
       <canvas ref={babylonCanvasRef} id='babylon-canvas'/>
     
-        {isSceneVisible && !motionControlsActive && (
-          <div id="permission-overlay">
-            <button
-              id="permission-button"
-              onClick={() => {
-                const scene = engineInstanceRef.current?.scenes[0];
-                if (scene) {
-                  setupGyroNormControls(scene);
-                }
-              }}
-            >
-              Enable Motion Controls
-            </button>
-          </div>
-        )}   
-    
+          <button onClick={() => setupDeviceMotionControls(scene)}>
+        Enable Motion Controls
+      </button>
+
+
     </div>
 
     </>
