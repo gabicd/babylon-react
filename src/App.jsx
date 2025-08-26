@@ -40,6 +40,18 @@ function App() {
             try {
               BABYLON.SceneLoader.ImportMeshAsync("", "./models/", "model.gltf", scene);
               console.log("Model loaded successfully!");
+
+        if (model) {
+            // --- STEP 3: Change the model's position ---
+            // The position is a Vector3(x, y, z).
+            // This example moves the model 2 units to the right and 1 unit up.
+            model.position = new BABYLON.Vector3(2, 1, 0);
+            
+            // You can also change individual axes:
+            // model.position.y = 1; // Move 1 unit up
+        }
+
+
           } catch (e) {
             console.error("Failed to load model.", e);
           }
