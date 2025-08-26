@@ -84,7 +84,7 @@ async function createScene (engine) { //função para criar a cena do Babylon.js
   
         await accelerometer.start();
       setMotionControlsActive(true); // Hide the button after activation
-      console.log("Accelerometer started.");
+      alert("Accelerometer started.");
   
   } catch (error){
       console.error("Failed to start Accelerometer. Permission may be denied.", error);
