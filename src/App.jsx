@@ -12,7 +12,11 @@ function App() {
   const scannerRef = useRef(null);
   const babylonCanvasRef = useRef(null);
   const engineInstanceRef = useRef(null);
+  const motionHandlerRef = useRef(null);
+  
   const [isSceneVisible, setSceneVisible] = useState(false);
+  const [motionControlsActive, setMotionControlsActive] = useState(false);
+  
 
   const assetData = {
   entidade: {
@@ -26,7 +30,11 @@ function App() {
       async function createScene (engine) {
         const scene = new BABYLON.Scene(engine);
         scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
-        scene.createDefaultCameraOrLight(true, false, true);
+      const camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 1, -5), scene);
+      camera.attachControl(babylonCanvasRef.current, true);
+
+      const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+      light.intensity = 0.8;
 
             try {
               BABYLON.SceneLoader.ImportMeshAsync("", "./models/", "model.gltf", scene);
@@ -37,70 +45,68 @@ function App() {
         return scene;
       }
 
-
-async function setupDeviceMotionControls(scene) {
-  const camera = scene.activeCamera;
-  const velocity = new BABYLON.Vector3(0, 0, 0);
-  const DAMPING = 0.95;
-  const ACCELERATION_THRESHOLD = 0.2;
-
-  // --- Step 1: Handle iOS 13+ Permissions ---
-  if (typeof DeviceMotionEvent.requestPermission === 'function') {
-    try {
-      const permissionState = await DeviceMotionEvent.requestPermission();
-      if (permissionState !== 'granted') {
-        alert('Permission for Device Motion was not granted.');
-        return;
-      }
-    } catch (error) {
-      console.error("Permission request failed.", error);
-      alert("Could not request permission.");
+  async function setupDeviceMotionControls(scene) {
+    if (!scene) {
+      console.error("Scene not available to set up motion controls.");
       return;
     }
-  }
+    const camera = scene.activeCamera;
+    const velocity = new BABYLON.Vector3(0, 0, 0);
+    const DAMPING = 0.95;
+    const ACCELERATION_THRESHOLD = 0.2;
 
-  let lastTimestamp = 0;
-  window.addEventListener('devicemotion', (event) => {
-    if (event.acceleration) {
-      if (lastTimestamp === 0) {
-        lastTimestamp = event.timeStamp;
+    if (typeof DeviceMotionEvent.requestPermission === 'function') {
+      try {
+        const permissionState = await DeviceMotionEvent.requestPermission();
+        if (permissionState !== 'granted') {
+          alert('Permission for Device Motion was not granted.');
+          return;
+        }
+      } catch (error) {
+        console.error("Permission request failed.", error);
+        alert("Could not request permission.");
         return;
       }
-      
-      // Calculate deltaTime for frame-rate independent physics
-      const deltaTime = (event.timeStamp - lastTimestamp) / 1000.0;
-      lastTimestamp = event.timeStamp;
-
-      let accelZ = event.acceleration.z;
-
-      if (Math.abs(accelZ) < ACCELERATION_THRESHOLD) {
-        accelZ = 0;
-      }
-
-      // Update velocity based on acceleration over time
-      velocity.z += -accelZ * deltaTime;
     }
-  });
+
+    let lastTimestamp = 0;
+    // --- FIX: Defined the handler so we can remove it later ---
+    motionHandlerRef.current = (event) => {
+      if (event.acceleration) {
+        if (lastTimestamp === 0) {
+          lastTimestamp = event.timeStamp;
+          return;
+        }
+        const deltaTime = (event.timeStamp - lastTimestamp) / 1000.0;
+        lastTimestamp = event.timeStamp;
+        let accelZ = event.acceleration.z;
+        if (Math.abs(accelZ) < ACCELERATION_THRESHOLD) {
+          accelZ = 0;
+        }
+        velocity.z += -accelZ * deltaTime;
+      }
+    };
+    
+    window.addEventListener('devicemotion', motionHandlerRef.current);
 
     scene.onBeforeRenderObservable.add(() => {
-    velocity.scaleInPlace(DAMPING);
-    if (Math.abs(velocity.z) < 0.001) {
-      velocity.z = 0;
-    }
-    const forwardDirection = camera.getDirection(BABYLON.Vector3.Forward());
-    const engineDeltaTime = scene.getEngine().getDeltaTime() / 1000.0;
-    camera.position.addInPlace(forwardDirection.scale(velocity.z * engineDeltaTime));
-  });
+      velocity.scaleInPlace(DAMPING);
+      if (Math.abs(velocity.z) < 0.001) {
+        velocity.z = 0;
+      }
+      const forwardDirection = camera.getDirection(BABYLON.Vector3.Forward());
+      const engineDeltaTime = scene.getEngine().getDeltaTime() / 1000.0;
+      camera.position.addInPlace(forwardDirection.scale(velocity.z * engineDeltaTime));
+    });
 
-  // Update your state to hide the button
-  setMotionControlsActive(true); 
-  console.log("Device Motion controls are active.");
+    setMotionControlsActive(true);
+    console.log("Device Motion controls are active.");
+  }
 
-}
     async function setResult(result) {
               console.log(`QR Code detected: ${result.data}`);
 
-              if(result.data == assetData.entidade.id) {
+              if(result.data == assetData.entidade.id && !isSceneVisible) {
                 console.log('Asset found:', assetData.entidade);
                 setSceneVisible(true);
                 const engine = engineInstanceRef.current;
@@ -158,13 +164,16 @@ async function setupDeviceMotionControls(scene) {
 
 
       return () => {
-      if (scannerRef.current) {
-        scannerRef.current.destroy();
-      }
-      if (map) map.remove();
-    };
+        if (motionHandlerRef.current) {
+          window.removeEventListener('devicemotion', motionHandlerRef.current);
+          console.log("Device motion listener removed.");
+        }
+        if (scannerRef.current) scannerRef.current.destroy();
+        if (engineInstanceRef.current) engineInstanceRef.current.dispose();
+        if (map) map.remove();
+      };
     }
-  }, []);
+  }, [isSceneVisible]);
 
   return (
     <>
@@ -175,9 +184,20 @@ async function setupDeviceMotionControls(scene) {
       <video ref={videoRef} id="qr-video"></video>
       <canvas ref={babylonCanvasRef} id='babylon-canvas'/>
     
-          <button onClick={() => setupDeviceMotionControls(scene)}>
-        Enable Motion Controls
-      </button>
+        {isSceneVisible && !motionControlsActive && (
+          <div id="permission-overlay">
+            {/* --- FIX: Corrected onClick to get the scene from the engine --- */}
+            <button
+              id="permission-button"
+              onClick={() => {
+                const scene = engineInstanceRef.current?.scenes[0];
+                setupDeviceMotionControls(scene);
+              }}
+            >
+              Enable Motion Controls
+            </button>
+          </div>
+        )}
 
 
     </div>
