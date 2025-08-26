@@ -185,7 +185,7 @@ async function createScene (engine) { //função para criar a cena do Babylon.js
                 }
               }}
             >
-              
+              Enable Accelerometer
             </button>
           </div>
         )}
