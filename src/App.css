@@ -31,3 +31,10 @@ html, body, #root, .app-container {
 #babylon-canvas {
   z-index: 2;
 }
+
+#permission-button{
+  padding: 10px;
+  background-color: pink;
+  border-radius: 5px;
+  border: none;
+}

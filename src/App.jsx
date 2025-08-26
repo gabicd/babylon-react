@@ -99,7 +99,7 @@ function App() {
                 engine.runRenderLoop(() => {
                   scene.render();
                 });
-                setupGyroNormControls(scene);
+                
               }
 
             }
@@ -173,6 +173,23 @@ function App() {
     <div id="video-div">
       <video ref={videoRef} id="qr-video"></video>
       <canvas ref={babylonCanvasRef} id='babylon-canvas'/>
+    
+        {isSceneVisible && !motionControlsActive && (
+          <div id="permission-overlay">
+            <button
+              id="permission-button"
+              onClick={() => {
+                const scene = engineInstanceRef.current?.scenes[0];
+                if (scene) {
+                  setupGyroNormControls(scene);
+                }
+              }}
+            >
+              Enable Motion Controls
+            </button>
+          </div>
+        )}   
+    
     </div>
 
     </>
