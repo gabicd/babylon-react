@@ -106,7 +106,7 @@ function App() {
     async function setResult(result) {
               console.log(`QR Code detected: ${result.data}`);
 
-              if(result.data == assetData.entidade.id && !isSceneVisible) {
+              if(result.data == assetData.entidade.id) {
                 console.log('Asset found:', assetData.entidade);
                 setSceneVisible(true);
                 const engine = engineInstanceRef.current;
@@ -173,7 +173,7 @@ function App() {
         if (map) map.remove();
       };
     }
-  }, [isSceneVisible]);
+  }, []);
 
   return (
     <>
