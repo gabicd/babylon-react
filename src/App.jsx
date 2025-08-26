@@ -32,7 +32,7 @@ function App() {
           scene
         );
 
-          camera.attachControl(canvas, true);
+          camera.attachControl(babylonCanvasRef.current, true);
   // -------------------------
 
   const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
