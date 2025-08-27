@@ -32,6 +32,8 @@ function App() {
           scene
         );
 
+            camera.attachControl(babylonCanvasRef.current, true);
+
           
   // -------------------------
 
